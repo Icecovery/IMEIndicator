@@ -9,7 +9,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>MIT License</Copyright>
     <PackageProjectUrl>https://github.com/Icecovery/IMEIndicator</PackageProjectUrl>
-    <ApplicationIcon>Logo.ico</ApplicationIcon>
+    <ApplicationIcon>Resources\Logo.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
