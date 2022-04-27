@@ -1,5 +1,7 @@
 # IME Indicator
 
+![](https://socialify.git.ci/Icecovery/IMEIndicator/image?description=1&font=Inter&forks=1&issues=1&language=1&logo=https%3A%2F%2Fgithub.com%2FIcecovery%2FIMEIndicator%2Fblob%2Fmaster%2FAssets%2FLogo.png%3Fraw%3Dtrue&owner=1&pattern=Plus&pulls=1&stargazers=1&theme=Dark)
+
 A better IME (Input Method Editor) indicator for Windows 10/11
 
 ## Features
@@ -59,4 +61,4 @@ Keyboard hook: [Global Low Level Key Board And Mouse Hook](https://github.com/rv
 
 ## License
 
-MIT License
+[MIT License](https://github.com/Icecovery/IMEIndicator/blob/master/LICENSE)
