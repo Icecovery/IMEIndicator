@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Win32;
 
 namespace IMEIndicator
 {
@@ -21,6 +22,7 @@ namespace IMEIndicator
 			LineAlignment = StringAlignment.Center,
 		};
 		private static readonly Dictionary<string, Icon> iconMap = new();
+		private static bool darkModeIcon = true;
 		private static Font? iconFont;
 		private static WinEventDelegate? winEventDelegate;
 		private const string notifyIconText =
@@ -92,6 +94,14 @@ namespace IMEIndicator
 		/// </summary>
 		private static void UpdateIcon()
 		{
+			bool isDarkMode = IsDarkMode();
+
+			if (isDarkMode != darkModeIcon)
+			{
+				iconMap.Clear();
+				darkModeIcon = isDarkMode;
+			}
+
 			CultureInfo? cultureInfo = GetCurrentKeyboardLayout();
 
 			string text = (cultureInfo?.TwoLetterISOLanguageName.ToUpper()) ?? "XX";
@@ -120,12 +130,31 @@ namespace IMEIndicator
 			g.InterpolationMode = InterpolationMode.HighQualityBicubic;
 			g.PixelOffsetMode = PixelOffsetMode.HighQuality;
 
-			// for some reason, iosevka font does not appears to be vertically centered, 72 looks fine
-			g.DrawString(text, iconFont!, Brushes.White, 64, 72, iconStringFormat);
+			g.DrawString(text, iconFont!, IsDarkMode() ? Brushes.White : Brushes.Black, 64, 72, iconStringFormat);
 			g.Flush();
 
 			Icon newIcon = Icon.FromHandle(bitmap.GetHicon());
 			return newIcon;
+		}
+
+		/// <summary>
+		/// Check if Windows theme is dark mode
+		/// </summary>
+		/// <returns>if Windows is dark mode</returns>
+		private static bool IsDarkMode()
+		{
+			try
+			{
+				if (Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "SystemUsesLightTheme", "1") is object v)
+				{
+					return v.ToString() == "0";
+				}
+				else return true;
+			}
+			catch
+			{
+				return true;
+			}
 		}
 		
 		/// <summary>
