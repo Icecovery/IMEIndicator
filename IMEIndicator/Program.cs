@@ -28,7 +28,7 @@ namespace IMEIndicator
 		private const string notifyIconText =
 			"{0} Keyboard\n" +
 			"\n" +
-			"Right click to open keyboard setting\n" +
+			"Right click to show all options\n" +
 			"Middle click to exit";
 
 		/// <summary>
@@ -68,6 +68,24 @@ namespace IMEIndicator
 		{
 			notifyIcon.Visible = true;
 			notifyIcon.MouseClick += NotifyIcon_MouseClick;
+
+			// setup drop down menu
+			ToolStripMenuItem menuItemSetting = new("Settings");
+			menuItemSetting.Click += MenuItemSetting_Click;
+
+			ToolStripMenuItem menuItemStartupFolder = new("Open Startup Folder");
+			menuItemStartupFolder.Click += MenuItemStartupFolder_Click;
+			
+			ToolStripMenuItem menuItemExit = new("Exit");
+			menuItemExit.Click += MenuItemExit_Click;
+			
+			ContextMenuStrip contextMenuStrip = new();
+			contextMenuStrip.Items.Add(menuItemSetting);
+			contextMenuStrip.Items.Add(menuItemStartupFolder);
+			contextMenuStrip.Items.Add(new ToolStripSeparator());
+			contextMenuStrip.Items.Add(menuItemExit);
+
+			notifyIcon.ContextMenuStrip = contextMenuStrip;
 		}
 
 		/// <summary>
@@ -236,13 +254,40 @@ namespace IMEIndicator
 		{
 			switch (e.Button)
 			{
-				case MouseButtons.Right:
-					LaunchWindowSettingApp("ms-settings:keyboard");
-					break;
 				case MouseButtons.Middle:
 					Environment.Exit(0);
 					break;
 			}
+		}
+
+		/// <summary>
+		/// Event when drop down setting button clicked
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
+		private static void MenuItemSetting_Click(object? sender, EventArgs e)
+		{
+			LaunchWindowSettingApp("ms-settings:keyboard");
+		}
+
+		/// <summary>
+		/// Event when drop down open startup folder button clicked
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
+		private static void MenuItemStartupFolder_Click(object? sender, EventArgs e)
+		{
+			Process.Start("explorer.exe", "shell:startup");
+		}
+
+		/// <summary>
+		/// Event when drop down quit button clicked
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
+		private static void MenuItemExit_Click(object? sender, EventArgs e)
+		{
+			Environment.Exit(0);
 		}
 
 		/// <summary>

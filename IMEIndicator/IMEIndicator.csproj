@@ -10,6 +10,7 @@
     <Copyright>MIT License</Copyright>
     <PackageProjectUrl>https://github.com/Icecovery/IMEIndicator</PackageProjectUrl>
     <ApplicationIcon>Resources\Logo.ico</ApplicationIcon>
+    <SignAssembly>True</SignAssembly>
   </PropertyGroup>
 
   <ItemGroup>

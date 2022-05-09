@@ -35,19 +35,22 @@ click on `Turn system icons on or off`.
 
 1. Create a shortcut for IME Indicator.
 
-2. Open `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup` in file 
-explorer, or
+2. Click `Open Startup Folder` button in the system tray icon drop down menu, or
 
-3. Alternately, type `shell:startup` in the Run dialog (open by pressing 
+3. Alternately, Open `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup`
+in file explorer, or
+
+4. Alternately, type `shell:startup` in the Run dialog (open by pressing 
 `Win + R` keys).
 
-4. Move the shortcut to that location.
+5. Move the shortcut to that location.
 
-5. IME Indicator should launch next time you start Windows.
+6. IME Indicator should launch next time you start Windows.
 
 ## Usage
 
-- Right click on the system tray icon will open Windows keyboard setting.
+- Right-click on the system tray icon will display the drop-down menu containing
+all the options.
 
 - Middle click on the system tray icon will quit the application.
 
