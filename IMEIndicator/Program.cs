@@ -205,6 +205,23 @@ namespace IMEIndicator
 				IntPtr foregroundWindow = GetForegroundWindow();
 				uint foregroundProcess = GetWindowThreadProcessId(foregroundWindow, IntPtr.Zero);
 				int keyboardLayout = GetKeyboardLayout(foregroundProcess).ToInt32() & 0xFFFF;
+
+				// get conversion test
+
+				IntPtr contextHIMC = ImmGetDefaultIMEWnd(foregroundWindow);
+
+				Console.WriteLine($"context {contextHIMC}");
+
+				uint lpdfwConversion = 0;
+				uint lpfdwSentence = 0;
+				bool output = ImmGetConversionStatus(contextHIMC, ref lpdfwConversion, ref lpfdwSentence);
+
+				Console.WriteLine($"output {output}, conversion {lpdfwConversion}, sentence {lpfdwSentence}");
+
+				ImmReleaseContext(foregroundWindow, contextHIMC);
+
+				// end of get conversion test
+
 				return new CultureInfo(keyboardLayout);
 			}
 			catch
@@ -327,7 +344,12 @@ namespace IMEIndicator
 		[DllImport("user32.dll")] static extern bool DestroyIcon(IntPtr handle);
 		[DllImport("gdi32.dll")] static extern IntPtr AddFontMemResourceEx(IntPtr pbFont, uint cbFont, IntPtr pdv, [In] ref uint pcFonts);
 		[DllImport("user32.dll")] static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr hmodWinEventProc, WinEventDelegate lpfnWinEventProc, uint idProcess, uint idThread, uint dwFlags);
-
+		[DllImport("Imm32.dll")] static extern bool ImmGetConversionStatus(IntPtr HIMC, ref uint lpfdwConversion, ref uint lpfdwSentence);
+		[DllImport("Imm32.dll")] static extern IntPtr ImmGetContext(IntPtr hwnd);
+		[DllImport("Imm32.dll")] static extern bool ImmReleaseContext(IntPtr hwnd, IntPtr HIMC);
+		[DllImport("imm32.dll")] static extern bool ImmGetOpenStatus(IntPtr himc);
+		[DllImport("imm32.dll")] static extern bool ImmSetOpenStatus(IntPtr himc, bool b);
+		[DllImport("imm32.dll")] static extern IntPtr ImmGetDefaultIMEWnd(IntPtr hwnd);
 		#endregion
 	}
 }
