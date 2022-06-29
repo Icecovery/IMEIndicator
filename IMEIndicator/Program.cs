@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
+using System.Linq;
 
 namespace IMEIndicator
 {
@@ -31,6 +32,8 @@ namespace IMEIndicator
 			"Right click to show all options\n" +
 			"Middle click to exit";
 
+		private static bool? needUpdate = null;
+
 		/// <summary>
 		/// Main entry point of the program
 		/// </summary>
@@ -51,6 +54,33 @@ namespace IMEIndicator
 			SetupWindowEventHook();
 			LoadFont();
 			UpdateIcon();
+			CheckUpdate();
+		}
+		
+		/// <summary>
+		/// Check if the program needs to be updated
+		/// </summary>
+		private static void CheckUpdate()
+		{
+			needUpdate = UpdateChecker.Check();
+
+			ToolStripItem status = notifyIcon.ContextMenuStrip.Items.Find("UpdateStatus", true).First();
+
+			if (needUpdate == null)
+			{
+				status.Text = "Failed to Fetch Updates";
+				status.Enabled = false;
+			}
+			else if (needUpdate.Value)
+			{
+				status.Text = "New Update Available! (Click to view)";
+				status.Enabled = true;
+			}
+			else
+			{
+				status.Text = "No Update Available";
+				status.Enabled = false;
+			}
 		}
 
 		/// <summary>
@@ -75,13 +105,25 @@ namespace IMEIndicator
 
 			ToolStripMenuItem menuItemStartupFolder = new("Open Startup Folder");
 			menuItemStartupFolder.Click += MenuItemStartupFolder_Click;
-			
+
+			ToolStripMenuItem menuItemUpdateStatus = new("Update Status")
+			{
+				Name = "UpdateStatus",
+				Enabled = false
+			};
+			menuItemUpdateStatus.Click += MenuItemUpdateStatus_Click;
+			ToolStripMenuItem menuItemCheckUpdate = new("Check for updates...");
+			menuItemCheckUpdate.Click += MenuItemCheckUpdate_Click;
+
 			ToolStripMenuItem menuItemExit = new("Exit");
 			menuItemExit.Click += MenuItemExit_Click;
-			
+
 			ContextMenuStrip contextMenuStrip = new();
 			contextMenuStrip.Items.Add(menuItemSetting);
 			contextMenuStrip.Items.Add(menuItemStartupFolder);
+			contextMenuStrip.Items.Add(new ToolStripSeparator());
+			contextMenuStrip.Items.Add(menuItemUpdateStatus);
+			contextMenuStrip.Items.Add(menuItemCheckUpdate);
 			contextMenuStrip.Items.Add(new ToolStripSeparator());
 			contextMenuStrip.Items.Add(menuItemExit);
 
@@ -299,6 +341,26 @@ namespace IMEIndicator
 		{
 			notifyIcon.Dispose();
 			keyboardHook.Uninstall();
+		}
+
+		/// <summary>
+		/// Event when update status text is clicked (when new update is available)
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
+		private static void MenuItemUpdateStatus_Click(object? sender, EventArgs e)
+		{
+			Process.Start("explorer", UpdateChecker.GitHubReleaseAddress);
+		}
+
+		/// <summary>
+		/// Event when check update button is clicked
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
+		private static void MenuItemCheckUpdate_Click(object? sender, EventArgs e)
+		{
+			CheckUpdate();
 		}
 
 		#endregion
