@@ -1,19 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using System.Globalization;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using Microsoft.Win32;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
 
 namespace IMEIndicator
 {
-	public class Program
+	public partial class Program
 	{
 		private static readonly NotifyIcon notifyIcon = new();
 		private static readonly KeyboardHook keyboardHook = new();	
@@ -25,7 +21,7 @@ namespace IMEIndicator
 		private static readonly Dictionary<string, Icon> iconMap = new();
 		private static bool darkModeIcon = true;
 		private static Font? iconFont;
-		private static WinEventDelegate? winEventDelegate;
+		private static WinAPI.WinEventDelegate? winEventDelegate;
 		private const string notifyIconText =
 			"{0} Keyboard\n" +
 			"\n" +
@@ -44,7 +40,7 @@ namespace IMEIndicator
 		}
 
 		/// <summary>
-		/// Setup code
+		/// Setup process
 		/// </summary>
 		private static void Setup()
 		{
@@ -57,32 +53,6 @@ namespace IMEIndicator
 			CheckUpdate();
 		}
 		
-		/// <summary>
-		/// Check if the program needs to be updated
-		/// </summary>
-		private static void CheckUpdate()
-		{
-			needUpdate = UpdateChecker.Check();
-
-			ToolStripItem status = notifyIcon.ContextMenuStrip.Items.Find("UpdateStatus", true).First();
-
-			if (needUpdate == null)
-			{
-				status.Text = "Failed to Fetch Updates";
-				status.Enabled = false;
-			}
-			else if (needUpdate.Value)
-			{
-				status.Text = "New Update Available! (Click to view)";
-				status.Enabled = true;
-			}
-			else
-			{
-				status.Text = "No Update Available";
-				status.Enabled = false;
-			}
-		}
-
 		/// <summary>
 		/// Initialize process exit hook
 		/// </summary>
@@ -145,78 +115,10 @@ namespace IMEIndicator
 		private static void SetupWindowEventHook()
 		{
 			// https://stackoverflow.com/a/10280800
-			winEventDelegate = new WinEventDelegate(WinEventProc);
-			IntPtr m_hhook = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, IntPtr.Zero, winEventDelegate, 0, 0, WINEVENT_OUTOFCONTEXT);
+			winEventDelegate = new WinAPI.WinEventDelegate(WinEventProc);
+			IntPtr m_hhook = WinAPI.SetWinEventHook(WinAPI.EVENT_SYSTEM_FOREGROUND, WinAPI.EVENT_SYSTEM_FOREGROUND, IntPtr.Zero, winEventDelegate, 0, 0, WinAPI.WINEVENT_OUTOFCONTEXT);
 		}
 
-		/// <summary>
-		/// Update notify icon
-		/// </summary>
-		private static void UpdateIcon()
-		{
-			bool isDarkMode = IsDarkMode();
-
-			if (isDarkMode != darkModeIcon)
-			{
-				iconMap.Clear();
-				darkModeIcon = isDarkMode;
-			}
-
-			CultureInfo? cultureInfo = GetCurrentKeyboardLayout();
-
-			string text = (cultureInfo?.TwoLetterISOLanguageName.ToUpper()) ?? "XX";
-
-			if (!iconMap.ContainsKey(text))
-			{
-				Icon newIcon = MakeIcon(text);
-				iconMap.Add(text, newIcon);
-			}
-
-			notifyIcon.Icon = iconMap[text];
-			notifyIcon.Text = string.Format(notifyIconText, (cultureInfo?.DisplayName) ?? "ERROR");
-		}
-
-		/// <summary>
-		/// Make icon with two letter language code
-		/// </summary>
-		/// <param name="text">Two letter code</param>
-		/// <returns>Generated icon</returns>
-		private static Icon MakeIcon(string text)
-		{
-			Bitmap bitmap = new(128, 128);
-
-			Graphics g = Graphics.FromImage(bitmap);
-			g.SmoothingMode = SmoothingMode.AntiAlias;
-			g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-			g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-
-			g.DrawString(text, iconFont!, IsDarkMode() ? Brushes.White : Brushes.Black, 64, 72, iconStringFormat);
-			g.Flush();
-
-			Icon newIcon = Icon.FromHandle(bitmap.GetHicon());
-			return newIcon;
-		}
-
-		/// <summary>
-		/// Check if Windows theme is dark mode
-		/// </summary>
-		/// <returns>if Windows is dark mode</returns>
-		private static bool IsDarkMode()
-		{
-			try
-			{
-				if (Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "SystemUsesLightTheme", "1") is object v)
-				{
-					return v.ToString() == "0";
-				}
-				else return true;
-			}
-			catch
-			{
-				return true;
-			}
-		}
-		
 		/// <summary>
 		/// Load font from resources
 		/// </summary>
@@ -229,167 +131,63 @@ namespace IMEIndicator
 			uint dummy = 0;
 			PrivateFontCollection iconFonts = new();
 			iconFonts.AddMemoryFont(fontPtr, Resources.iosevka_fixed_regular_capital.Length);
-			AddFontMemResourceEx(fontPtr, (uint)Resources.iosevka_fixed_regular_capital.Length, IntPtr.Zero, ref dummy);
+			WinAPI.AddFontMemResourceEx(fontPtr, (uint)Resources.iosevka_fixed_regular_capital.Length, IntPtr.Zero, ref dummy);
 			Marshal.FreeCoTaskMem(fontPtr);
 
 			iconFont = new Font(iconFonts.Families[0], 84.0f);
 		}
 
 		/// <summary>
-		/// Use low level win32 API to get keyboard layout info for current foreground window
+		/// Update notify icon
 		/// </summary>
-		/// <returns></returns>
-		public static CultureInfo? GetCurrentKeyboardLayout()
+		private static void UpdateIcon()
 		{
-			// https://yal.cc/csharp-get-current-keyboard-layout/
-			try
+			bool isDarkMode = ProgramHelpers.IsDarkMode();
+
+			if (isDarkMode != darkModeIcon)
 			{
-				IntPtr foregroundWindow = GetForegroundWindow();
-				uint foregroundProcess = GetWindowThreadProcessId(foregroundWindow, IntPtr.Zero);
-				int keyboardLayout = GetKeyboardLayout(foregroundProcess).ToInt32() & 0xFFFF;
-				return new CultureInfo(keyboardLayout);
+				iconMap.Clear();
+				darkModeIcon = isDarkMode;
 			}
-			catch
+
+			CultureInfo? cultureInfo = ProgramHelpers.GetCurrentKeyboardLayout();
+
+			string text = (cultureInfo?.TwoLetterISOLanguageName.ToUpper()) ?? "XX";
+
+			if (!iconMap.ContainsKey(text))
 			{
-				return null;
+				Icon newIcon = ProgramHelpers.MakeIcon(text, iconFont, iconStringFormat);
+				iconMap.Add(text, newIcon);
 			}
+
+			notifyIcon.Icon = iconMap[text];
+			notifyIcon.Text = string.Format(notifyIconText, (cultureInfo?.DisplayName) ?? "ERROR");
 		}
 
 		/// <summary>
-		/// Launch windows setting APP
+		/// Check if the program needs to be updated
 		/// </summary>
-		/// <param name="url">
-		///		URL of the setting page
-		///		<see href="https://docs.microsoft.com/en-us/windows/uwp/launch-resume/launch-settings-app">
-		///			MS docs
-		///		</see>
-		///	</param>
-		private static void LaunchWindowSettingApp(string url)
+		private static void CheckUpdate()
 		{
-			ProcessStartInfo processStartInfo = new(url);
-			processStartInfo.UseShellExecute = true;
-			Process.Start(processStartInfo);
-		}
+			needUpdate = UpdateChecker.Check();
 
-		#region Events
+			ToolStripItem status = notifyIcon.ContextMenuStrip.Items.Find("UpdateStatus", true).First();
 
-		/// <summary>
-		/// Global keyboard key up event
-		/// </summary>
-		/// <param name="key"></param>
-		private static async void KeyboardHook_KeyUp(KeyboardHook.VKeys key)
-		{
-			// detect key up for any win button so hold win and tap space will be supported
-			if (key == KeyboardHook.VKeys.LWIN || key == KeyboardHook.VKeys.RWIN)
+			if (needUpdate == null)
 			{
-				// delay a small time so Windows has time to react
-				await Task.Delay(10).ContinueWith(t => UpdateIcon());
+				status.Text = "Failed to Fetch Updates";
+				status.Enabled = false;
 			}
-		}
-
-		/// <summary>
-		/// Event when click notify icon
-		/// </summary>
-		/// <param name="sender"></param>
-		/// <param name="e"></param>
-		private static void NotifyIcon_MouseClick(object? sender, MouseEventArgs e)
-		{
-			switch (e.Button)
+			else if (needUpdate.Value)
 			{
-				case MouseButtons.Middle:
-					Environment.Exit(0);
-					break;
+				status.Text = "New Update Available! (Click to view)";
+				status.Enabled = true;
+			}
+			else
+			{
+				status.Text = "No Update Available";
+				status.Enabled = false;
 			}
 		}
-
-		/// <summary>
-		/// Event when drop down setting button clicked
-		/// </summary>
-		/// <param name="sender"></param>
-		/// <param name="e"></param>
-		private static void MenuItemSetting_Click(object? sender, EventArgs e)
-		{
-			LaunchWindowSettingApp("ms-settings:keyboard");
-		}
-
-		/// <summary>
-		/// Event when drop down open startup folder button clicked
-		/// </summary>
-		/// <param name="sender"></param>
-		/// <param name="e"></param>
-		private static void MenuItemStartupFolder_Click(object? sender, EventArgs e)
-		{
-			Process.Start("explorer.exe", "shell:startup");
-		}
-
-		/// <summary>
-		/// Event when drop down quit button clicked
-		/// </summary>
-		/// <param name="sender"></param>
-		/// <param name="e"></param>
-		private static void MenuItemExit_Click(object? sender, EventArgs e)
-		{
-			Environment.Exit(0);
-		}
-
-		/// <summary>
-		/// Clean up code when exiting the application
-		/// </summary>
-		/// <param name="sender"></param>
-		/// <param name="e"></param>
-		private static void CurrentDomain_ProcessExit(object? sender, EventArgs e)
-		{
-			notifyIcon.Dispose();
-			keyboardHook.Uninstall();
-		}
-
-		/// <summary>
-		/// Event when update status text is clicked (when new update is available)
-		/// </summary>
-		/// <param name="sender"></param>
-		/// <param name="e"></param>
-		private static void MenuItemUpdateStatus_Click(object? sender, EventArgs e)
-		{
-			Process.Start("explorer", UpdateChecker.GitHubReleaseAddress);
-		}
-
-		/// <summary>
-		/// Event when check update button is clicked
-		/// </summary>
-		/// <param name="sender"></param>
-		/// <param name="e"></param>
-		private static void MenuItemCheckUpdate_Click(object? sender, EventArgs e)
-		{
-			CheckUpdate();
-		}
-
-		#endregion
-
-		#region Win Event
-
-		// https://stackoverflow.com/a/10280800
-		delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
-
-		public static void WinEventProc(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
-		{
-			// https://stackoverflow.com/a/10280800
-			UpdateIcon();
-		}
-
-		#endregion
-	
-		#region Win32 API
-
-		private const uint WINEVENT_OUTOFCONTEXT = 0;
-		private const uint EVENT_SYSTEM_FOREGROUND = 3;
-
-		[DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
-		[DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hwnd, IntPtr proccess);
-		[DllImport("user32.dll")] static extern IntPtr GetKeyboardLayout(uint thread);
-		[DllImport("user32.dll")] static extern bool DestroyIcon(IntPtr handle);
-		[DllImport("gdi32.dll")] static extern IntPtr AddFontMemResourceEx(IntPtr pbFont, uint cbFont, IntPtr pdv, [In] ref uint pcFonts);
-		[DllImport("user32.dll")] static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr hmodWinEventProc, WinEventDelegate lpfnWinEventProc, uint idProcess, uint idThread, uint dwFlags);
-
-		#endregion
 	}
 }
